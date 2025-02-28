@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_SECURITY_ADMIN_PASSWORD=password
     volumes:
       - grafana_data:/var/lib/grafana
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
       - INFLUXDB_DB=grafana
       - INFLUXDB_ADMIN_ENABLED=true
       - INFLUXDB_ADMIN_USER=admin
-      - INFLUXDB_ADMIN_PASSWORD=admin123
+      - INFLUXDB_ADMIN_PASSWORD=password
       - INFLUXDB_USER=grafana
       - INFLUXDB_USER_PASSWORD=grafana123
     volumes:
@@ -105,7 +105,7 @@ services:
       - INFLUXDB_PORT=8086
       - INFLUXDB_DATABASE=grafana
       - INFLUXDB_USER=admin
-      - INFLUXDB_PASSWORD=admin123
+      - INFLUXDB_PASSWORD=password
     depends_on:
       influxdb:
         condition: service_healthy

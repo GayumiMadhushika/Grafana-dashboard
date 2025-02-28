@@ -14,7 +14,7 @@ INFLUXDB_ADDRESS = "influxdb"  # ✅ Use Docker service name instead of "localho
 INFLUXDB_PORT = 8086
 INFLUXDB_DATABASE = "grafana"
 INFLUXDB_USER = "admin"
-INFLUXDB_PASSWORD = "admin123"
+INFLUXDB_PASSWORD = "password"
 
 # ✅ Function to Connect to InfluxDB (Handles Errors)
 def connect_influx():
