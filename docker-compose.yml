@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: grafana
+    ports:
+      - "8000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: grafana
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: MYSQL
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/etc/prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=grafana
+      - INFLUXDB_ADMIN_ENABLED=true
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin123
+      - INFLUXDB_USER=grafana
+      - INFLUXDB_USER_PASSWORD=grafana123
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/ping"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto_config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "localhost", "-t", "test", "-m", "ping"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+  mqtt_to_influx:
+    image: python:3.9  # ✅ Use an official Python image
+    container_name: mqtt_to_influx
+    working_dir: /app  # ✅ Set working directory
+    volumes:
+      - .:/app  # ✅ Mount the current directory
+    command: >
+      sh -c "pip install -r requirements.txt && python mqtt_to_influx.py"
+    environment:
+      - INFLUXDB_ADDRESS=influxdb
+      - INFLUXDB_PORT=8086
+      - INFLUXDB_DATABASE=grafana
+      - INFLUXDB_USER=admin
+      - INFLUXDB_PASSWORD=admin123
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  grafana_data:
+  mysql_data:
+  prometheus_data:
+  influxdb_data:
+  mosquitto_config:
+  mosquitto_data:
+  mosquitto_log:
